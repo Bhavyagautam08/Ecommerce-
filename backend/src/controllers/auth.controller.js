@@ -54,8 +54,7 @@ export const generateSignupOTP = async (req, res, next) => {
 
         return res.status(200).json({
             status: "ok",
-            message: "OTP generated successfully and sent to email.",
-            otp // In production, DO NOT send the OTP in the response, send it via email/SMS instead.
+            message: "OTP generated successfully and sent to email."
         });
     } catch (err) {
         console.log("Error:", err.message);
