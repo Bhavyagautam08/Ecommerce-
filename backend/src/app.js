@@ -15,6 +15,8 @@ import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
 import { orderRouter, adminOrderRouter } from "./routes/order.routes.js";
 
+import { CLIENT_URL } from "./config/env.js";
+
 const app = express();
 
 app.use(express.json());
@@ -22,7 +24,7 @@ app.use(morgan("dev"));
 
 app.use(
     cors({
-        origin: ["http://localhost:3000", "http://localhost:3001"],
+        origin: [CLIENT_URL, "http://localhost:3000", "http://localhost:3001"],
         credentials: true,
     })
 );
