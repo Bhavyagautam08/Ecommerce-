@@ -1,4 +1,8 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const normalizedBaseUrl = configuredBaseUrl.replace(/\/+$/, "");
+const BASE_URL = /\/api\/v1$/i.test(normalizedBaseUrl)
+  ? normalizedBaseUrl
+  : `${normalizedBaseUrl}/api/v1`;
 
 async function refreshAccessToken() {
   const refreshToken = localStorage.getItem("refreshToken");

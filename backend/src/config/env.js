@@ -8,5 +8,11 @@ const JWT_SECRET = process.env.JWT_SECRET ;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const REDIS_URL = process.env.REDIS_URL;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+const CLIENT_URLS = [...new Set([
+    CLIENT_URL,
+    ...(process.env.CLIENT_URLS || "").split(",").map((url) => url.trim()).filter(Boolean),
+    "http://localhost:3000",
+    "http://localhost:3001",
+].map((url) => new URL(url).origin))];
 
-export { PORT, MONGO_URI , JWT_SECRET , REFRESH_TOKEN_SECRET , REDIS_URL, CLIENT_URL };
+export { PORT, MONGO_URI , JWT_SECRET , REFRESH_TOKEN_SECRET , REDIS_URL, CLIENT_URLS };

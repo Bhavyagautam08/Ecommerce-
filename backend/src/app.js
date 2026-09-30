@@ -15,7 +15,7 @@ import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
 import { orderRouter, adminOrderRouter } from "./routes/order.routes.js";
 
-import { CLIENT_URL } from "./config/env.js";
+import { CLIENT_URLS } from "./config/env.js";
 
 const app = express();
 
@@ -24,7 +24,14 @@ app.use(morgan("dev"));
 
 app.use(
     cors({
-        origin: [CLIENT_URL, "http://localhost:3000", "http://localhost:3001"],
+        origin: (origin, callback) => {
+            if (!origin || CLIENT_URLS.includes(origin)) {
+                callback(null, true);
+                return;
+            }
+
+            callback(new Error(`Origin ${origin} is not allowed by CORS`));
+        },
         credentials: true,
     })
 );
