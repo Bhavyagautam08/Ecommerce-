@@ -2,6 +2,8 @@ import { api } from "./api";
 
 export const authService = {
   register: (data) => api.post("/register", data),
+  generateOtp: (data) => api.post("/register/generate-otp", data),
+  verifyOtp: (data) => api.post("/register/verify-otp", data),
   login: (data) => api.post("/auth/login", data),
   refresh: (refreshToken) => api.post("/auth/refresh", { refreshToken }),
   me: () => api.get("/auth/me"),

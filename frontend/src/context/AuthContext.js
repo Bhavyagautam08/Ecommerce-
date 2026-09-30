@@ -44,6 +44,20 @@ export function AuthProvider({ children }) {
     return authService.register(formData);
   };
 
+  const generateOtp = async (formData) => {
+    return authService.generateOtp(formData);
+  };
+
+  const verifyOtp = async (email, otp) => {
+    const data = await authService.verifyOtp({ email, otp });
+    const accessToken = data.AccessToken || data.accessToken;
+    const refreshToken = data.RefreshToken || data.refreshToken;
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    await fetchUser();
+    return data;
+  };
+
   const logout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
@@ -51,7 +65,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, generateOtp, verifyOtp, logout, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

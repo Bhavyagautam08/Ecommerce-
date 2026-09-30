@@ -7,6 +7,11 @@ const redisClient = {
     get: async (key) => store.get(key) || null,
     set: async (key, value, options) => { 
         store.set(key, value); 
+        if (options && options.EX) {
+            setTimeout(() => {
+                store.delete(key);
+            }, options.EX * 1000);
+        }
         return 'OK'; 
     },
     del: async (key) => { 

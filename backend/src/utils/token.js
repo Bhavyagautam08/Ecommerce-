@@ -1,9 +1,9 @@
 import JWT from "jsonwebtoken";
 import { JWT_SECRET, REFRESH_TOKEN_SECRET } from "../config/env.js";
 
-export const generateAccessToken = (userID) => {
+export const generateAccessToken = (userID, role) => {
     return JWT.sign(
-        { userID , role},
+        { userID, role },
         JWT_SECRET,
         { expiresIn: "15m" }
     );
