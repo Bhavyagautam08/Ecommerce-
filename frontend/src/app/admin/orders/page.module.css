@@ -1,0 +1,123 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.table {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr 1fr 1.2fr 1fr 1.5fr;
+  padding: 14px 20px;
+  background: var(--bg-elevated);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr 1fr 1.2fr 1fr 1.5fr;
+  padding: 16px 20px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: var(--transition);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.tableRow:hover {
+  background: var(--bg-elevated);
+}
+
+.orderId {
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.itemsCount {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+}
+
+.customer {
+  display: flex;
+  flex-direction: column;
+}
+
+.customerName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.customerEmail {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statusCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusSelect {
+  padding: 6px 30px 6px 12px;
+  font-size: 13px;
+  background-position: right 8px center;
+  border-radius: var(--radius-full);
+}
+
+.dateCell {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1024px) {
+  .tableHeader, .tableRow {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+
+  .tableHeader span:nth-child(5),
+  .tableRow > div:nth-child(5),
+  .tableHeader span:nth-child(6),
+  .tableRow > div:nth-child(6) {
+    display: none;
+  }
+}

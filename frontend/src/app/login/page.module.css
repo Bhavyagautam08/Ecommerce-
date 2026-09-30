@@ -1,0 +1,185 @@
+/* Shared auth page styles used by both login and register */
+.page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--bg-primary);
+}
+
+/* Image side */
+.imageSide {
+  position: relative;
+  overflow: hidden;
+}
+
+.bgImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 7, 0.45);
+}
+
+.imageQuote {
+  position: absolute;
+  bottom: 60px;
+  left: 40px;
+  right: 40px;
+  z-index: 1;
+}
+
+.quoteText {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(240, 236, 228, 0.9);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.quoteAuthor {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #C8A882;
+  text-transform: uppercase;
+}
+
+/* Form side */
+.formSide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.logoBack {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-primary);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stepLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  font-family: 'Outfit', sans-serif;
+}
+
+.title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(36px, 4vw, 52px);
+  font-weight: 300;
+  color: var(--text-primary);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.title em {
+  font-style: italic;
+  color: var(--accent-primary);
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent-primary);
+  color: #080807;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: 'Outfit', sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--accent-secondary);
+}
+
+.submitBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.footer {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.footerLink {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.footerLink:hover {
+  opacity: 0.75;
+}
+
+/* Register extra */
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  .imageSide {
+    display: none;
+  }
+  .formSide {
+    border-left: none;
+    padding: 40px 24px;
+  }
+}
