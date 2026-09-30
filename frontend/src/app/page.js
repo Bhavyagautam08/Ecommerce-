@@ -1,7 +1,16 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import styles from "./page.module.css";
+
+const formatPrice = (price) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(price);
+
+const FALLBACK_PRODUCT_IMAGE =
+  "https://images.unsplash.com/photo-1613915617430-8ab0fd7c6baf?auto=format&fit=crop&q=80&w=800";
 
 export default function Home() {
   const newArrivals = [
@@ -10,7 +19,7 @@ export default function Home() {
       image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&q=80&w=800",
       category: "OUTERWEAR",
       name: "Structured Wool Blazer",
-      price: "$485",
+      price: 48500,
       tag: "NEW"
     },
     {
@@ -18,15 +27,15 @@ export default function Home() {
       image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
       category: "DRESSES",
       name: "Silk Midi Dress",
-      price: "$320",
+      price: 32000,
       tag: "LIMITED"
     },
     {
       id: 3,
-      image: "https://images.unsplash.com/photo-1618932260643-f66d4ffce56a?auto=format&fit=crop&q=80&w=800",
+      image: "https://images.unsplash.com/photo-1613915617430-8ab0fd7c6baf?auto=format&fit=crop&q=80&w=800",
       category: "SETS",
       name: "Tailored Linen Suit",
-      price: "$695",
+      price: 69500,
       tag: ""
     },
     {
@@ -34,7 +43,7 @@ export default function Home() {
       image: "https://images.unsplash.com/photo-1534126511673-b6899657816a?auto=format&fit=crop&q=80&w=800",
       category: "BOTTOMS",
       name: "Pleated Wide-Leg Trouser",
-      price: "$265",
+      price: 26500,
       tag: "NEW"
     }
   ];
@@ -88,7 +97,7 @@ export default function Home() {
           </div>
 
           <div className={styles.collectionsGrid}>
-            <div className={styles.collectionCard}>
+            <Link href="/products?category=Outerwear" className={styles.collectionCard}>
               <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=1000" alt="Archive I" className={styles.collectionImg} />
               <div className={styles.collectionOverlay}></div>
               <div className={styles.collectionTag}>NEW SEASON</div>
@@ -96,15 +105,15 @@ export default function Home() {
                 <div className={styles.collectionMeta}>FALL / WINTER 2026 &middot; 42 PIECES</div>
                 <h3 className={styles.collectionName}>Archive I</h3>
               </div>
-            </div>
-            <div className={styles.collectionCard}>
+            </Link>
+            <Link href="/products?category=Dresses" className={styles.collectionCard}>
               <img src="https://images.unsplash.com/photo-1617317376997-8748e6862c01?auto=format&fit=crop&q=80&w=1000" alt="Chromatic" className={styles.collectionImg} />
               <div className={styles.collectionOverlay}></div>
               <div className={styles.collectionInfo}>
                 <div className={styles.collectionMeta}>RESORT COLLECTION &middot; 18 PIECES</div>
                 <h3 className={styles.collectionName}>Chromatic</h3>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
@@ -118,30 +127,38 @@ export default function Home() {
               <h2 className={styles.sectionTitle}>New Arrivals</h2>
             </div>
             <div className={styles.filterLinks}>
-              <span className={styles.filterActive}>ALL</span>
-              <span className={styles.filterLink}>WOMEN</span>
-              <span className={styles.filterLink}>MEN</span>
-              <span className={styles.filterLink}>ACCESSORIES</span>
+              <Link href="/products" className={styles.filterActive}>ALL</Link>
+              <Link href="/products?category=Dresses" className={styles.filterLink}>WOMEN</Link>
+              <Link href="/products?category=Tops" className={styles.filterLink}>MEN</Link>
+              <Link href="/products?category=Accessories" className={styles.filterLink}>ACCESSORIES</Link>
             </div>
           </div>
 
           <div className={styles.productsGrid}>
             {newArrivals.map((product) => (
-              <div key={product.id} className={styles.productCard}>
+              <Link key={product.id} href={`/products?search=${encodeURIComponent(product.name)}`} className={styles.productCard}>
                 <div className={styles.productImageWrapper}>
                   {product.tag && (
                     <div className={`${styles.productBadge} ${product.tag === 'LIMITED' ? styles.badgeLimited : ''}`}>
                       {product.tag}
                     </div>
                   )}
-                  <img src={product.image} alt={product.name} className={styles.productImage} />
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className={styles.productImage}
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                    }}
+                  />
                 </div>
                 <div className={styles.productDetails}>
                   <div className={styles.productCategory}>{product.category}</div>
                   <h4 className={styles.productName}>{product.name}</h4>
-                  <div className={styles.productPrice}>{product.price}</div>
+                  <div className={styles.productPrice}>{formatPrice(product.price)}</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           
@@ -175,6 +192,53 @@ export default function Home() {
           </Link>
         </div>
       </section>
+      <section className={styles.storySection} id="brand-story">
+        <div className={styles.storyImage}>
+          <img
+            src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=85&w=1200"
+            alt="A considered approach to everyday style"
+          />
+        </div>
+        <div className={styles.storyContent}>
+          <p className={styles.sectionLabel}>MADE TO BE KEPT</p>
+          <h2 className={styles.storyTitle}>Less, but <i>better.</i></h2>
+          <p className={styles.storyCopy}>
+            MAREN is a study in considered dressing: lasting silhouettes,
+            thoughtful materials, and pieces that feel like you from the very
+            first wear. Discover a wardrobe designed to move with you.
+          </p>
+          <Link href="/products" className={styles.storyLink}>DISCOVER THE COLLECTION <span>→</span></Link>
+        </div>
+      </section>
+      <footer className={styles.siteFooter}>
+        <div className={styles.footerMain}>
+          <div className={styles.footerBrand}>
+            <Link href="/" className={styles.footerLogo}>MAREN</Link>
+            <p>Considered pieces. Confident dressing.<br />Made for the way you move.</p>
+          </div>
+          <div className={styles.footerColumn}>
+            <h3>EXPLORE</h3>
+            <Link href="/products">All pieces</Link>
+            <Link href="/products?category=Dresses">Dresses</Link>
+            <Link href="/products?category=Accessories">Accessories</Link>
+          </div>
+          <div className={styles.footerColumn}>
+            <h3>YOUR ACCOUNT</h3>
+            <Link href="/orders">Orders</Link>
+            <Link href="/cart">Shopping bag</Link>
+            <Link href="/login">Sign in</Link>
+          </div>
+          <div className={styles.footerNote}>
+            <span>THE MAREN EDIT</span>
+            <p>A little inspiration for a more considered wardrobe.</p>
+            <Link href="/lookbook">EXPLORE THE EDIT →</Link>
+          </div>
+        </div>
+        <div className={styles.footerBottom}>
+          <span>© {new Date().getFullYear()} MAREN. ALL RIGHTS RESERVED.</span>
+          <Link href="/">BACK TO THE TOP ↑</Link>
+        </div>
+      </footer>
     </div>
   );
 }

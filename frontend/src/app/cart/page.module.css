@@ -436,49 +436,6 @@
   color: var(--text-primary);
 }
 
-/* Promo */
-.promoRow {
-  display: flex;
-  gap: 0;
-  margin-bottom: 20px;
-  border: 1px solid var(--border-subtle);
-}
-
-.promoInput {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 12px 16px;
-  font-size: 12px;
-  color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
-  letter-spacing: 0.04em;
-}
-
-.promoInput::placeholder {
-  color: var(--text-muted);
-}
-
-.promoBtn {
-  padding: 12px 16px;
-  background: var(--bg-elevated);
-  border: none;
-  border-left: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: 'Inter', sans-serif;
-}
-
-.promoBtn:hover {
-  background: var(--accent-primary);
-  color: #000;
-}
-
 /* Checkout Button */
 .checkoutBtn {
   width: 100%;

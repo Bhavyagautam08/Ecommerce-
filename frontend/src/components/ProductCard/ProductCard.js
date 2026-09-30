@@ -31,6 +31,7 @@ export default function ProductCard({ product }) {
 
   const imageUrl = product.images?.[0] ||
     "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&q=80&w=600";
+  const alternateImageUrl = product.images?.[1];
   const isOutOfStock = product.stock === 0;
 
   return (
@@ -43,7 +44,7 @@ export default function ProductCard({ product }) {
       {/* Image */}
       <div className={styles.imageWrapper}>
         <img
-          src={imageUrl}
+          src={hovered && alternateImageUrl ? alternateImageUrl : imageUrl}
           alt={product.name}
           className={styles.image}
           onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&q=80&w=600"; }}

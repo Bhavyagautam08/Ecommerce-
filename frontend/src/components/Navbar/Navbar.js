@@ -1,17 +1,36 @@
 "use client";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import styles from "./Navbar.module.css";
 
-const NAV_LINKS = ["Women", "Men", "Collections", "Editorial", "About"];
+const NAV_LINKS = [
+  { label: "Women", href: "/products?category=Dresses" },
+  { label: "Men", href: "/products?category=Tops" },
+  { label: "Collections", href: "/collections" },
+  { label: "Editorial", href: "/lookbook" },
+  { label: "About", href: "/about" },
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
   const pathname = usePathname();
   const isAdmin = user?.role === "admin";
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+
+  useEffect(() => {
+    if (!confirmSignOut) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setConfirmSignOut(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmSignOut]);
 
   return (
     <>
@@ -30,10 +49,10 @@ export default function Navbar() {
             {NAV_LINKS.map((item) => (
               <li key={item}>
                 <Link
-                  href={item === "Women" ? "/products?category=Clothing" : item === "Men" ? "/products?category=Clothing" : "/products"}
-                  className={`${styles.link} ${pathname.includes(item.toLowerCase()) ? styles.active : ""}`}
+                  href={item.href}
+                  className={`${styles.link} ${pathname.includes(item.label.toLowerCase()) ? styles.active : ""}`}
                 >
-                  {item.toUpperCase()}
+                  {item.label.toUpperCase()}
                 </Link>
               </li>
             ))}
@@ -52,11 +71,11 @@ export default function Navbar() {
           {/* Right actions */}
           <div className={styles.actions}>
             {/* Search icon */}
-            <button className={styles.iconBtn} aria-label="Search">
+            <Link href="/products" className={styles.iconBtn} aria-label="Search products" title="Search products">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
-            </button>
+            </Link>
 
             {/* Auth */}
             {user ? (
@@ -68,7 +87,7 @@ export default function Navbar() {
                     <path d="M9 12h6M9 16h4"/>
                   </svg>
                 </Link>
-                <button onClick={logout} className={styles.iconBtn} aria-label="Sign out" title={`Signed in as ${user.name}`}>
+                <button onClick={() => setConfirmSignOut(true)} className={styles.iconBtn} aria-label="Sign out" title={`Signed in as ${user.name}`}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                   </svg>
@@ -92,6 +111,42 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+      {confirmSignOut && (
+        <div
+          className={styles.dialogBackdrop}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setConfirmSignOut(false);
+          }}
+        >
+          <section
+            className={styles.dialog}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="sign-out-title"
+            aria-describedby="sign-out-description"
+          >
+            <p className={styles.dialogEyebrow}>YOUR MAREN ACCOUNT</p>
+            <h2 id="sign-out-title" className={styles.dialogTitle}>Sign out?</h2>
+            <p id="sign-out-description" className={styles.dialogCopy}>
+              You can sign back in anytime to pick up where you left off.
+            </p>
+            <div className={styles.dialogActions}>
+              <button autoFocus className={styles.dialogCancel} onClick={() => setConfirmSignOut(false)}>
+                Stay signed in
+              </button>
+              <button
+                className={styles.dialogConfirm}
+                onClick={() => {
+                  logout();
+                  setConfirmSignOut(false);
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }

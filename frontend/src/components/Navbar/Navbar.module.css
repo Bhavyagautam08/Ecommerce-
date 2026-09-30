@@ -145,6 +145,79 @@
   font-family: 'Outfit', sans-serif;
 }
 
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.dialog {
+  width: min(100%, 440px);
+  padding: 36px;
+  border: 1px solid var(--border-hover);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-lg);
+}
+
+.dialogEyebrow {
+  margin-bottom: 12px;
+  color: var(--accent-primary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.dialogTitle {
+  color: var(--text-primary);
+  font-size: 34px;
+}
+
+.dialogCopy {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.dialogCancel,
+.dialogConfirm {
+  padding: 12px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dialogCancel {
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.dialogConfirm {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.dialogCancel:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.dialogConfirm:hover {
+  background: var(--accent-secondary);
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .links { display: none; }
@@ -154,4 +227,5 @@
 @media (max-width: 480px) {
   .signInBtn { display: none; }
   .inner { padding: 0 16px; }
+  .dialog { padding: 28px 22px; }
 }

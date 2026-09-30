@@ -31,7 +31,6 @@ export default function CartPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [removingId, setRemovingId] = useState(null);
-  const [promoCode, setPromoCode] = useState("");
 
   /* ── Auth guard ── */
   if (!user) {
@@ -265,18 +264,6 @@ export default function CartPage() {
             <div className={styles.totalRow}>
               <span className={styles.totalLabel}>TOTAL</span>
               <span className={styles.totalAmt}>₹{grandTotal.toLocaleString("en-IN")}</span>
-            </div>
-
-            {/* Promo Code */}
-            <div className={styles.promoRow}>
-              <input
-                type="text"
-                placeholder="Promo code"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                className={styles.promoInput}
-              />
-              <button className={styles.promoBtn}>APPLY</button>
             </div>
 
             {/* CTA */}

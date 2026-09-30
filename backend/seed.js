@@ -4,7 +4,7 @@ import Product from "./src/models/product.model.js";
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ecommerce";
+const MONGODB_URI = process.env.MONGO_URI;
 
 const products = [
   {
@@ -144,22 +144,130 @@ const products = [
   }
 ];
 
+const galleryImages = [
+  "photo-1529139574466-a303027c1d8b",
+  "photo-1483985988355-763728e1935b",
+  "photo-1490481651871-ab68de25d43d",
+  "photo-1534528741775-53994a69daeb",
+  "photo-1525507119028-ed4c629a60a3",
+  "photo-1548126032-079a0fb0099d",
+  "photo-1485230895905-ec40ba36b9bc",
+  "photo-1515886657613-9f3515b0c78f",
+  "photo-1539109136881-3be0616acf4b",
+  "photo-1595777457583-95e059d581b8",
+  "photo-1581044777550-4cfa60707c03",
+  "photo-1618932260643-f66d4ffce56a",
+  "photo-1551028719-00167b16eac5",
+  "photo-1584916201218-f4242ceb4809",
+  "photo-1535632066927-ab7c9ab60908",
+  "photo-1608256246200-53e635b5b65f",
+  "photo-1598554747436-c9293d6a588f",
+  "photo-1614252235316-8465d648b251",
+  "photo-1583391733958-d15ce11516f4",
+  "photo-1612731486606-2614b4d74921",
+];
+
+const imageUrl = (photoId) =>
+  `https://images.unsplash.com/${photoId}?auto=format&fit=crop&q=85&w=1000`;
+
+const createGallery = (coverImage, index) => [
+  ...new Set([
+    coverImage,
+    ...galleryImages
+      .slice(index)
+      .concat(galleryImages.slice(0, index))
+      .map(imageUrl),
+  ]),
+].slice(0, 3);
+
+const createSupplementalProducts = () => {
+  const tones = [
+    "Midnight", "Ivory", "Sienna", "Olive", "Cobalt",
+    "Rose", "Stone", "Aubergine", "Sage", "Oat",
+  ];
+  const designs = [
+    { name: "Tailored Blazer", category: "Outerwear", price: 38500 },
+    { name: "Relaxed Trench", category: "Outerwear", price: 46500 },
+    { name: "Sculpted Coat", category: "Outerwear", price: 52000 },
+    { name: "Column Dress", category: "Dresses", price: 28500 },
+    { name: "Draped Midi Dress", category: "Dresses", price: 32000 },
+    { name: "Evening Slip Dress", category: "Dresses", price: 34500 },
+    { name: "Wide-Leg Trouser", category: "Bottoms", price: 22000 },
+    { name: "Pleated Skirt", category: "Bottoms", price: 18500 },
+    { name: "Cashmere Knit", category: "Tops", price: 24500 },
+    { name: "Poplin Shirt", category: "Tops", price: 14500 },
+    { name: "Linen Co-ord", category: "Sets", price: 39500 },
+    { name: "Leather Shoulder Bag", category: "Accessories", price: 28000 },
+    { name: "Minimal Hoop Earrings", category: "Accessories", price: 9500 },
+    { name: "Leather Ankle Boot", category: "Footwear", price: 32500 },
+    { name: "Everyday Loafer", category: "Footwear", price: 29500 },
+  ];
+
+  return tones.flatMap((tone, toneIndex) =>
+    designs.map((design, designIndex) => {
+      const photoIndex = (toneIndex * designs.length + designIndex) % galleryImages.length;
+      return {
+        name: `MAREN ${tone} ${design.name}`,
+        description: `A considered MAREN essential in ${tone.toLowerCase()}. Designed with a refined silhouette, thoughtful detailing, and an easy fit for everyday wear.`,
+        price: design.price + toneIndex * 500,
+        images: createGallery(imageUrl(galleryImages[photoIndex]), photoIndex + 1),
+        category: design.category,
+        stock: 12 + ((toneIndex * 7 + designIndex * 3) % 39),
+        brand: "MAREN",
+      };
+    })
+  );
+};
+
 const seedDB = async () => {
   try {
+    if (!MONGODB_URI) {
+      throw new Error("MONGO_URI must be set before seeding the product catalog.");
+    }
+
     await mongoose.connect(MONGODB_URI);
     console.log("Connected to MongoDB for seeding...");
 
-    await Product.deleteMany({});
-    console.log("Cleared existing products.");
+    await Promise.all(products.map(async (product, index) => {
+      const { images, ...productFields } = product;
+      await Product.updateOne(
+        { name: product.name },
+        {
+          $set: { images: createGallery(images[0], index) },
+          $setOnInsert: productFields,
+        },
+        { upsert: true }
+      );
+    }));
 
-    const inserted = await Product.insertMany(products);
-    console.log(`Successfully seeded ${inserted.length} products!`);
+    const existingNames = new Set(
+      (await Product.find({}, { name: 1, _id: 0 }).lean()).map(({ name }) => name)
+    );
+    const currentCount = await Product.countDocuments();
+    const missingCount = Math.max(0, 100 - currentCount);
+    const additions = createSupplementalProducts()
+      .filter((product) => !existingNames.has(product.name))
+      .slice(0, missingCount);
 
-    mongoose.connection.close();
-    process.exit(0);
+    if (additions.length < missingCount) {
+      throw new Error(`Could only prepare ${additions.length} of ${missingCount} missing products.`);
+    }
+
+    if (additions.length) {
+      await Product.insertMany(additions);
+    }
+
+    const finalCount = await Product.countDocuments();
+    if (finalCount < 100) {
+      throw new Error(`Catalog seeding finished with ${finalCount} products; expected at least 100.`);
+    }
+
+    console.log(`Catalog ready: ${finalCount} products, including multi-image galleries.`);
   } catch (error) {
     console.error("Error seeding database:", error);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
   }
 };
 

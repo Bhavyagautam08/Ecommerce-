@@ -45,6 +45,16 @@ npm run dev
 
 The API will be available at `http://localhost:5000`.
 
+To populate the catalog with at least 100 products and multi-image galleries, set
+`MONGO_URI` in `backend/.env` and run this once from the `backend/` directory:
+
+```bash
+npm run seed
+```
+
+The seed command is repeatable and preserves existing products; it adds only
+missing catalog entries and refreshes galleries for the original sample items.
+
 ### 2. Frontend Setup
 
 ```bash
@@ -69,7 +79,8 @@ The app will be available at `http://localhost:3000`.
 | `MONGO_URI` | MongoDB Atlas connection string |
 | `JWT_SECRET` | Secret for signing access tokens |
 | `REFRESH_TOKEN_SECRET` | Secret for signing refresh tokens |
-| `CLIENT_URL` | Frontend URL (for CORS) |
+| `CLIENT_URL` | Primary frontend origin allowed by CORS |
+| `CLIENT_URLS` | Optional comma-separated additional frontend origins |
 | `SMTP_EMAIL` | Gmail address for sending OTPs |
 | `SMTP_PASSWORD` | Gmail App Password |
 
@@ -89,7 +100,10 @@ The app will be available at `http://localhost:3000`.
 2. Set **Build Command**: `npm install`
 3. Set **Start Command**: `node server.js`
 4. Add all environment variables from `backend/.env.example`.
-5. Set `CLIENT_URL` to your Vercel frontend URL.
+5. Set `CLIENT_URL` to your primary Vercel frontend origin. Add preview origins
+   to `CLIENT_URLS` as a comma-separated list when needed.
+6. Run `npm run seed` from `backend/` with the production `MONGO_URI` to populate
+   the catalog; the seed command does not delete existing products.
 
 ### Frontend → [Vercel](https://vercel.com)
 

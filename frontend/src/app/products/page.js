@@ -1,6 +1,6 @@
 "use client";
 import { Suspense } from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import { productService } from "@/services/product.service";
@@ -19,36 +19,57 @@ function ProductsContent() {
   const [products, setProducts]     = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState("");
   const [search, setSearch]         = useState(searchParams.get("search") || "");
   const [category, setCategory]     = useState(searchParams.get("category") || "");
   const [sort, setSort]             = useState(searchParams.get("sort") || "newest");
   const [page, setPage]             = useState(Number(searchParams.get("page")) || 1);
   const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 400);
     return () => clearTimeout(t);
   }, [search]);
 
-  const fetchProducts = useCallback(async () => {
+  useEffect(() => {
+    let isCurrentRequest = true;
+
+    const loadProducts = async () => {
+      try {
+        const params = { page, limit: 12, sort };
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (category && category !== "All") params.category = category;
+        const data = await productService.getAll(params);
+        if (!isCurrentRequest) return;
+        setLoadError("");
+        setProducts(data.products || []);
+        setPagination(data.pagination || null);
+      } catch (err) {
+        if (!isCurrentRequest) return;
+        setLoadError(err.message || "We couldn't load the collection. Please try again.");
+      } finally {
+        if (isCurrentRequest) setLoading(false);
+      }
+    };
+
+    loadProducts();
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [page, sort, debouncedSearch, category, retryCount]);
+
+  const handleCategoryChange = (cat) => {
+    const nextCategory = cat === "All" ? "" : cat;
+    if (nextCategory !== category || page !== 1) setLoading(true);
+    setCategory(nextCategory);
+    setPage(1);
+  };
+
+  const handleRetry = () => {
     setLoading(true);
-    try {
-      const params = { page, limit: 12, sort };
-      if (debouncedSearch) params.search = debouncedSearch;
-      if (category && category !== "All") params.category = category;
-      const data = await productService.getAll(params);
-      setProducts(data.products || []);
-      setPagination(data.pagination || null);
-    } catch (err) {
-      console.error("Failed to load products:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, sort, debouncedSearch, category]);
-
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
-
-  const handleCategoryChange = (cat) => { setCategory(cat === "All" ? "" : cat); setPage(1); };
+    setRetryCount((count) => count + 1);
+  };
 
   return (
     <div className={styles.wrapper}>
@@ -83,10 +104,21 @@ function ProductsContent() {
                 className={styles.searchInput}
                 placeholder="Search pieces..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value !== search) setLoading(true);
+                  setSearch(e.target.value);
+                }}
               />
               {search && (
-                <button className={styles.clearBtn} onClick={() => setSearch("")}>✕</button>
+                <button
+                  className={styles.clearBtn}
+                  onClick={() => {
+                    setLoading(true);
+                    setSearch("");
+                  }}
+                >
+                  ✕
+                </button>
               )}
             </div>
           </div>
@@ -119,7 +151,11 @@ function ProductsContent() {
                 <button
                   key={opt.value}
                   className={`${styles.sortBtn} ${sort === opt.value ? styles.sortBtnActive : ""}`}
-                  onClick={() => { setSort(opt.value); setPage(1); }}
+                  onClick={() => {
+                    if (sort !== opt.value || page !== 1) setLoading(true);
+                    setSort(opt.value);
+                    setPage(1);
+                  }}
                 >
                   {opt.label}
                 </button>
@@ -143,12 +179,28 @@ function ProductsContent() {
                 </div>
               ))}
             </div>
+          ) : loadError ? (
+            <div className={styles.empty} role="alert">
+              <div className={styles.emptyGlyph}>◇</div>
+              <h3>Collection unavailable</h3>
+              <p>{loadError}</p>
+              <button
+                className="btn btn-primary"
+                onClick={handleRetry}
+              >
+                Try Again
+              </button>
+            </div>
           ) : products.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyGlyph}>◇</div>
               <h3>No pieces found</h3>
               <p>Try adjusting your search or category filter.</p>
-              <button className="btn btn-primary" onClick={() => { setSearch(""); setCategory(""); }}>
+              <button className="btn btn-primary" onClick={() => {
+                if (search || category) setLoading(true);
+                setSearch("");
+                setCategory("");
+              }}>
                 Clear Filters
               </button>
             </div>
@@ -166,7 +218,10 @@ function ProductsContent() {
               <button
                 className={styles.pageArrow}
                 disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
+                onClick={() => {
+                  setLoading(true);
+                  setPage((p) => p - 1);
+                }}
               >
                 ← PREV
               </button>
@@ -177,7 +232,11 @@ function ProductsContent() {
                     <button
                       key={p}
                       className={`${styles.pageNum} ${p === page ? styles.pageNumActive : ""}`}
-                      onClick={() => setPage(p)}
+                      disabled={p === page}
+                      onClick={() => {
+                        if (p !== page) setLoading(true);
+                        setPage(p);
+                      }}
                     >
                       {p}
                     </button>
@@ -186,7 +245,10 @@ function ProductsContent() {
               <button
                 className={styles.pageArrow}
                 disabled={page === pagination.totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => {
+                  setLoading(true);
+                  setPage((p) => p + 1);
+                }}
               >
                 NEXT →
               </button>

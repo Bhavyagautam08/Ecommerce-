@@ -64,6 +64,47 @@
   transform: scale(1.03);
 }
 
+.galleryArrow {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid rgba(240, 236, 228, 0.35);
+  border-radius: 50%;
+  background: rgba(8, 8, 7, 0.72);
+  color: var(--text-primary);
+  font-size: 30px;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.galleryArrow:hover {
+  border-color: var(--accent-primary);
+  background: rgba(8, 8, 7, 0.92);
+}
+
+.galleryArrowPrevious {
+  left: 16px;
+}
+
+.galleryArrowNext {
+  right: 16px;
+}
+
+.galleryCount {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  padding: 5px 9px;
+  background: rgba(8, 8, 7, 0.72);
+  color: var(--text-primary);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
 .outOfStockOverlay {
   position: absolute;
   inset: 0;

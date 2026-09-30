@@ -104,6 +104,27 @@ export default function ProductDetailPage() {
                 className={styles.mainImg}
                 onError={(e) => { e.target.src = "https://placehold.co/600x500/16161f/7c3aed?text=No+Image"; }}
               />
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className={`${styles.galleryArrow} ${styles.galleryArrowPrevious}`}
+                    aria-label="Show previous product image"
+                    onClick={() => setActiveImg((current) => (current - 1 + images.length) % images.length)}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.galleryArrow} ${styles.galleryArrowNext}`}
+                    aria-label="Show next product image"
+                    onClick={() => setActiveImg((current) => (current + 1) % images.length)}
+                  >
+                    ›
+                  </button>
+                  <span className={styles.galleryCount}>{activeImg + 1} / {images.length}</span>
+                </>
+              )}
               {isOutOfStock && (
                 <div className={styles.outOfStockOverlay}>Out of Stock</div>
               )}
