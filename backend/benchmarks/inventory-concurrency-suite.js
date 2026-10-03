@@ -6,6 +6,7 @@ import Cart from "../src/models/cart.model.js";
 import Order from "../src/models/order.model.js";
 import Product from "../src/models/product.model.js";
 import User from "../src/models/user.model.js";
+import { invalidateProductCache } from "../src/services/cache.service.js";
 import { generateAccessToken } from "../src/utils/token.js";
 
 dotenv.config();
@@ -101,81 +102,105 @@ const prepareRace = async (concurrency) => {
     };
 };
 
-const runRace = async (concurrency) => {
-    const setup = await prepareRace(concurrency);
-    const initialProduct = await Product.findById(setup.productId).select("stock");
-    if (initialProduct?.stock !== 1) {
-        throw new Error(
-            `Race ${concurrency}: fresh product did not start at stock 1`
-        );
-    }
-
-    const startedAt = new Date();
-    const results = await Promise.all(
-        setup.tokens.map((token, index) =>
-            sendOrder(index + 1, token, setup.addressLine)
-        )
-    );
-    const finishedAt = new Date();
-
-    const finalProduct = await Product.findById(setup.productId).select("stock");
-    const createdOrders = await Order.find({
+const cleanupRaceData = async (setup, concurrency) => {
+    await Order.deleteMany({
         user: { $in: setup.userIds },
         "shippingAddress.addressLine": setup.addressLine,
-        items: {
-            $elemMatch: {
-                product: setup.productId,
-                quantity: 1
-            }
-        }
-    }).select("_id user items");
-    const successful = results.filter((result) => result.status === 201);
-    const insufficientStock = results.filter(
-        (result) =>
-            result.status === 400 &&
-            /insufficient stock/i.test(result.responseBody?.message || "")
-    );
-    const expectedPass =
-        successful.length === 1 &&
-        insufficientStock.length === concurrency - 1 &&
-        createdOrders.length === 1 &&
-        finalProduct?.stock === 0;
-    const latencyTotal = results.reduce(
-        (total, result) => total + result.elapsedMs,
-        0
-    );
-    const otherStatuses = results.filter(
-        (result) => result.status !== 201 && !(
-            result.status === 400 &&
-            /insufficient stock/i.test(result.responseBody?.message || "")
-        )
-    );
+        "items.product": setup.productId
+    });
+    await Cart.deleteMany({
+        user: { $in: setup.userIds },
+        "items.product": setup.productId
+    });
+    await User.deleteMany({ _id: { $in: setup.userIds } });
+    await Product.deleteOne({
+        _id: setup.productId,
+        name: `Inventory Race Test ${concurrency} ${setup.runId}`,
+        category: "Benchmark",
+        brand: "MAREN BENCHMARK"
+    });
+    await invalidateProductCache();
+};
 
-    console.log(`\n=== ${concurrency} CONCURRENT ORDER REQUESTS ===`);
-    console.log(`Product: ${setup.productId}`);
-    console.log(`Started: ${startedAt.toISOString()}`);
-    console.log(`Finished: ${finishedAt.toISOString()}`);
-    console.log(`HTTP 201 orders: ${successful.length}`);
-    console.log(`HTTP 400 insufficient stock: ${insufficientStock.length}`);
-    console.log(`Unexpected statuses/errors: ${otherStatuses.length}`);
-    console.log(`Orders found for this race: ${createdOrders.length}`);
-    console.log(`Final stock: ${finalProduct?.stock ?? "product missing"}`);
-    console.log(
-        `Request response times: avg ${(latencyTotal / results.length).toFixed(2)} ms; max ${Math.max(...results.map((result) => result.elapsedMs))} ms`
-    );
-
-    if (otherStatuses.length > 0) {
-        console.log("Unexpected request results:");
-        for (const result of otherStatuses) {
-            console.log(
-                `  Request ${result.requestNumber}: HTTP ${result.status}; ${JSON.stringify(result.responseBody)}`
+const runRace = async (concurrency) => {
+    const setup = await prepareRace(concurrency);
+    try {
+        const initialProduct = await Product.findById(setup.productId).select("stock");
+        if (initialProduct?.stock !== 1) {
+            throw new Error(
+                `Race ${concurrency}: fresh product did not start at stock 1`
             );
         }
+
+        const startedAt = new Date();
+        const results = await Promise.all(
+            setup.tokens.map((token, index) =>
+                sendOrder(index + 1, token, setup.addressLine)
+            )
+        );
+        const finishedAt = new Date();
+
+        const finalProduct = await Product.findById(setup.productId).select("stock");
+        const createdOrders = await Order.find({
+            user: { $in: setup.userIds },
+            "shippingAddress.addressLine": setup.addressLine,
+            items: {
+                $elemMatch: {
+                    product: setup.productId,
+                    quantity: 1
+                }
+            }
+        }).select("_id user items");
+        const successful = results.filter((result) => result.status === 201);
+        const insufficientStock = results.filter(
+            (result) =>
+                result.status === 400 &&
+                /insufficient stock/i.test(result.responseBody?.message || "")
+        );
+        const expectedPass =
+            successful.length === 1 &&
+            insufficientStock.length === concurrency - 1 &&
+            createdOrders.length === 1 &&
+            finalProduct?.stock === 0;
+        const latencyTotal = results.reduce(
+            (total, result) => total + result.elapsedMs,
+            0
+        );
+        const otherStatuses = results.filter(
+            (result) => result.status !== 201 && !(
+                result.status === 400 &&
+                /insufficient stock/i.test(result.responseBody?.message || "")
+            )
+        );
+
+        console.log(`\n=== ${concurrency} CONCURRENT ORDER REQUESTS ===`);
+        console.log(`Product: ${setup.productId}`);
+        console.log(`Started: ${startedAt.toISOString()}`);
+        console.log(`Finished: ${finishedAt.toISOString()}`);
+        console.log(`HTTP 201 orders: ${successful.length}`);
+        console.log(`HTTP 400 insufficient stock: ${insufficientStock.length}`);
+        console.log(`Unexpected statuses/errors: ${otherStatuses.length}`);
+        console.log(`Orders found for this race: ${createdOrders.length}`);
+        console.log(`Final stock: ${finalProduct?.stock ?? "product missing"}`);
+        console.log(
+            `Request response times: avg ${(latencyTotal / results.length).toFixed(2)} ms; max ${Math.max(...results.map((result) => result.elapsedMs))} ms`
+        );
+
+        if (otherStatuses.length > 0) {
+            console.log("Unexpected request results:");
+            for (const result of otherStatuses) {
+                console.log(
+                    `  Request ${result.requestNumber}: HTTP ${result.status}; ${JSON.stringify(result.responseBody)}`
+                );
+            }
+        }
+
+        console.log(`RESULT: ${expectedPass ? "PASS" : "FAIL"}`);
+
+        return expectedPass;
+    } finally {
+        await cleanupRaceData(setup, concurrency);
     }
-
-    console.log(`RESULT: ${expectedPass ? "PASS" : "FAIL"}`);
-
-    return expectedPass;
 };
 
 const main = async () => {
