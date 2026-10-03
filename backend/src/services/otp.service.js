@@ -8,9 +8,9 @@ export const generateOTP = async (email, userData) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
     const key = `otp:${email}`;
-    const value = JSON.stringify({ otp, userData });
+    const value = { otp, userData };
     
-    await redisClient.set(key, value, { EX: OTP_EXPIRATION });
+    await redisClient.set(key, value, { ex: OTP_EXPIRATION });
     
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; text-align: center; border: 1px solid #eaeaea; border-radius: 10px;">
@@ -41,7 +41,9 @@ export const verifyOTP = async (email, providedOtp) => {
         return null;
     }
     
-    const data = JSON.parse(dataString);
+    const data = typeof dataString === "string"
+        ? JSON.parse(dataString)
+        : dataString;
     if (data.otp === providedOtp) {
         await redisClient.del(key); // OTP should be one-time use
         return data.userData;

@@ -10,10 +10,10 @@ This guide explains how to deploy **Maren** — the backend on [Render](https://
 Because of the CORS chicken-and-egg problem (backend needs the frontend URL, frontend needs the backend URL), follow this exact order:
 
 ```
-1. Deploy backend on Render  → set CLIENT_URL=* temporarily
+1. Deploy backend on Render  → set CLIENT_URL=http://localhost:3000 temporarily
 2. Copy your Render URL      → use it in Vercel as NEXT_PUBLIC_API_URL
 3. Deploy frontend on Vercel → copy your Vercel URL
-4. Update CLIENT_URL on Render with the real Vercel URL → auto-redeploys ✅
+4. Update CLIENT_URL on Render with the real Vercel origin → redeploy
 ```
 
 ---
@@ -38,11 +38,16 @@ Because of the CORS chicken-and-egg problem (backend needs the frontend URL, fro
 | `MONGO_URI` | Your MongoDB Atlas connection string |
 | `JWT_SECRET` | A strong random string |
 | `REFRESH_TOKEN_SECRET` | A different strong random string |
-| `CLIENT_URL` | `*` ← set this temporarily, update after frontend deploy |
+| `CLIENT_URL` | `http://localhost:3000` temporarily; replace after frontend deploy |
+| `CLIENT_URLS` | Optional comma-separated Vercel production/preview origins |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL from the Upstash console |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token from the Upstash console |
 | `SMTP_EMAIL` | Your Gmail address |
 | `SMTP_PASSWORD` | Your 16-char Gmail App Password |
 
-> **Note:** `PORT` and `REDIS_URL` do not need to be set on Render.
+> **Note:** Do not set `CLIENT_URL=*`. The backend parses configured origins as
+> URLs, and a wildcard is invalid. `PORT` is provided by Render. Set
+> `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for Redis.
 
 ### 4. Deploy
 Click **Create Web Service**. Your backend URL will be:
@@ -75,11 +80,17 @@ https://<your-project-name>.vercel.app
 ## 🔄 Final Step — Update CORS on Render
 
 1. Go to your Render service → **Environment** tab
-2. Update `CLIENT_URL` from `*` to your real Vercel URL:
+2. Set `CLIENT_URL` to the exact Vercel frontend origin (scheme and hostname,
+   with no API path or trailing slash):
    ```
-   CLIENT_URL=https://<your-project-name>.vercel.app
+   CLIENT_URL=https://<your-production-project>.vercel.app
    ```
-3. Render will automatically redeploy with the correct CORS configuration.
+3. If Vercel preview deployments also need API access, set `CLIENT_URLS` to
+   comma-separated exact origins, for example:
+   ```
+   CLIENT_URLS=https://<production-project>.vercel.app,https://<preview-deployment>.vercel.app
+   ```
+4. Save the environment changes and wait for Render to redeploy.
 
 ---
 
@@ -88,6 +99,8 @@ https://<your-project-name>.vercel.app
 Once both are live, test these endpoints:
 
 - `GET https://<backend>.onrender.com/api/v1/health` → should return `200 OK`
+- A browser-origin preflight to the backend should return an
+  `Access-Control-Allow-Origin` matching the Vercel frontend origin.
 - Open your Vercel URL in the browser → app should load and connect to the backend
 
 ---

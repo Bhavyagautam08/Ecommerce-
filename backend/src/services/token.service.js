@@ -6,7 +6,7 @@ const KEY_PREFIX = "refresh_token:";
 export const storeRefreshToken = async (userId, refreshToken) => {
     const key = `${KEY_PREFIX}${userId}`;
     await redisClient.set(key, refreshToken, {
-        EX: REFRESH_TOKEN_EXP
+        ex: REFRESH_TOKEN_EXP
     });
 };
 

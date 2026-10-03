@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import autocannon from "autocannon";
 import hdr from "hdr-histogram-js";
-import redisClient from "../src/config/redis.js";
+import redisClient, { scanKeys } from "../src/config/redis.js";
 
 dotenv.config();
 
@@ -64,19 +64,9 @@ const fetchListing = async (url) => {
 };
 
 const clearListingCache = async () => {
-    const keys = [];
-    for await (const batch of redisClient.scanIterator({
-        MATCH: "products:*",
-        COUNT: 250
-    })) {
-        for (const key of batch) {
-            if (typeof key === "string") {
-                keys.push(key);
-            }
-        }
-    }
+    const keys = await scanKeys("products:*");
     if (keys.length) {
-        await redisClient.del(keys);
+        await redisClient.del(...keys);
     }
     return keys.length;
 };
@@ -131,136 +121,131 @@ const main = async () => {
         throw new Error(`Backend health check returned HTTP ${healthResponse.status}`);
     }
 
-    await redisClient.connect();
-    try {
-        if (await redisClient.ping() !== "PONG") {
-            throw new Error("Redis did not return PONG");
-        }
-
-        const initialStats = await getCacheStats();
-        if (initialStats.hits !== 0 || initialStats.misses !== 0) {
-            throw new Error(
-                `Expected fresh backend cache counters at zero; got ${initialStats.hits} hits and ${initialStats.misses} misses. Restart the backend before running.`
-            );
-        }
-
-        const clearedKeys = await clearListingCache();
-        console.log("\n===== REDIS PRODUCT CACHE HIT-RATE TEST =====");
-        console.log(`Backend: ${baseUrl}`);
-        console.log("Redis: connected and responding to PING");
-        console.log("Cache counters: fresh process, hits=0, misses=0");
-        console.log(`Cleared product-list cache keys: ${clearedKeys}`);
-        console.log(`Catalog size verified: at least 100,000 products`);
-
-        const coldUrl = listingUrls[0];
-        const coldStartStats = await getCacheStats();
-        const coldStartedAt = performance.now();
-        const coldResults = await Promise.all(
-            Array.from({ length: coldBurstSize }, () => fetchListing(coldUrl))
-        );
-        const coldElapsedMs = Number(
-            (performance.now() - coldStartedAt).toFixed(2)
-        );
-        const coldStats = await getCacheStats();
-        const coldHits = coldStats.hits - coldStartStats.hits;
-        const coldMisses = coldStats.misses - coldStartStats.misses;
-
-        console.log("\nCold-cache simultaneous same-key burst:");
-        console.log(`  URL: ${coldUrl}`);
-        console.log(`  Concurrent requests: ${coldBurstSize}`);
-        console.log(`  HTTP 200 responses: ${coldResults.length}`);
-        console.log(`  Burst elapsed: ${coldElapsedMs} ms`);
-        console.log(
-            `  Unfiltered catalog count: ${coldResults[0]?.totalProducts ?? 0}`
-        );
-        if (coldResults.some((result) => result.totalProducts < 100_000)) {
-            throw new Error("The unfiltered listing did not verify a 100K catalog");
-        }
-        console.log(`  Cache hits: ${coldHits}`);
-        console.log(`  Cache misses: ${coldMisses}`);
-        console.log(
-            `  Cold-cache stampede observed: ${coldMisses > 1 ? "YES" : "NO"}`
-        );
-
-        console.log("\nWarming distinct product-list cache keys:");
-        for (const url of listingUrls) {
-            const result = await fetchListing(url);
-            console.log(`  HTTP ${result.status}: ${url}`);
-        }
-
-        const warmResults = await Promise.all(
-            listingUrls.flatMap((url) =>
-                Array.from(
-                    { length: warmRequestsPerUrl },
-                    () => fetchListing(url)
-                )
-            )
-        );
-        const warmStats = await getCacheStats();
-        console.log("\nRepeated requests across warmed listing variants:");
-        console.log(`  Distinct listing URLs: ${listingUrls.length}`);
-        console.log(
-            `  Requests: ${warmResults.length} (${warmRequestsPerUrl} per URL)`
-        );
-        console.log(
-            `  All responses successful: ${warmResults.length === listingUrls.length * warmRequestsPerUrl}`
-        );
-        console.log(
-            `  Cumulative hits/misses: ${warmStats.hits}/${warmStats.misses}`
-        );
-
-        const beforeLoad = await getCacheStats();
-        console.log(
-            `\nRunning warm-cache load: ${connections} connections for ${duration}s on ${coldUrl}`
-        );
-        const load = await runLoad();
-        const afterLoad = await getCacheStats();
-        const loadHits = afterLoad.hits - beforeLoad.hits;
-        const loadMisses = afterLoad.misses - beforeLoad.misses;
-        const countedCacheLookups = loadHits + loadMisses;
-        const totalHits = afterLoad.hits;
-        const totalMisses = afterLoad.misses;
-        const totalLookups = totalHits + totalMisses;
-
-        console.log("\nWarm-cache load results:");
-        console.log(`  Total requests: ${load.requests.total}`);
-        console.log(`  Requests/sec: ${load.requests.average}`);
-        console.log(`  Average latency: ${load.latency.average} ms`);
-        console.log(`  P50 latency: ${load.latency.p50} ms`);
-        console.log(`  P95 latency: ${load.latency.p95} ms`);
-        console.log(`  P99 latency: ${load.latency.p99} ms`);
-        console.log(`  Max latency: ${load.latency.max} ms`);
-        console.log(`  Errors: ${load.errors}`);
-        console.log(`  Non-2xx responses: ${load.non2xx}`);
-        console.log(`  Cache hits during load: ${loadHits}`);
-        console.log(`  Cache misses during load: ${loadMisses}`);
-        console.log(
-            `  Hit rate during load: ${countedCacheLookups === 0 ? 0 : Number(((loadHits / countedCacheLookups) * 100).toFixed(2))}%`
-        );
-
-        console.log("\nAll test cache counters:");
-        console.log(`  Hits: ${totalHits}`);
-        console.log(`  Misses: ${totalMisses}`);
-        console.log(`  Total: ${totalLookups}`);
-        console.log(
-            `  Hit rate: ${totalLookups === 0 ? 0 : Number(((totalHits / totalLookups) * 100).toFixed(2))}%`
-        );
-        console.log(
-            `  Miss rate: ${totalLookups === 0 ? 0 : Number(((totalMisses / totalLookups) * 100).toFixed(2))}%`
-        );
-        console.log(
-            `  Cache-hit verification: ${
-                load.errors === 0 &&
-                load.non2xx === 0 &&
-                loadHits > 0 &&
-                loadMisses === 0
-                    ? "PASS"
-                    : "FAIL"
-            }`
-        );
-    } finally {
-        await redisClient.quit();
+    if ((await redisClient.ping()).toUpperCase() !== "PONG") {
+        throw new Error("Redis did not return PONG");
     }
+
+    const initialStats = await getCacheStats();
+    if (initialStats.hits !== 0 || initialStats.misses !== 0) {
+        throw new Error(
+            `Expected fresh backend cache counters at zero; got ${initialStats.hits} hits and ${initialStats.misses} misses. Restart the backend before running.`
+        );
+    }
+
+    const clearedKeys = await clearListingCache();
+    console.log("\n===== REDIS PRODUCT CACHE HIT-RATE TEST =====");
+    console.log(`Backend: ${baseUrl}`);
+    console.log("Redis: connected and responding to PING");
+    console.log("Cache counters: fresh process, hits=0, misses=0");
+    console.log(`Cleared product-list cache keys: ${clearedKeys}`);
+    console.log(`Catalog size verified: at least 100,000 products`);
+
+    const coldUrl = listingUrls[0];
+    const coldStartStats = await getCacheStats();
+    const coldStartedAt = performance.now();
+    const coldResults = await Promise.all(
+        Array.from({ length: coldBurstSize }, () => fetchListing(coldUrl))
+    );
+    const coldElapsedMs = Number(
+        (performance.now() - coldStartedAt).toFixed(2)
+    );
+    const coldStats = await getCacheStats();
+    const coldHits = coldStats.hits - coldStartStats.hits;
+    const coldMisses = coldStats.misses - coldStartStats.misses;
+
+    console.log("\nCold-cache simultaneous same-key burst:");
+    console.log(`  URL: ${coldUrl}`);
+    console.log(`  Concurrent requests: ${coldBurstSize}`);
+    console.log(`  HTTP 200 responses: ${coldResults.length}`);
+    console.log(`  Burst elapsed: ${coldElapsedMs} ms`);
+    console.log(
+        `  Unfiltered catalog count: ${coldResults[0]?.totalProducts ?? 0}`
+    );
+    if (coldResults.some((result) => result.totalProducts < 100_000)) {
+        throw new Error("The unfiltered listing did not verify a 100K catalog");
+    }
+    console.log(`  Cache hits: ${coldHits}`);
+    console.log(`  Cache misses: ${coldMisses}`);
+    console.log(
+        `  Cold-cache stampede observed: ${coldMisses > 1 ? "YES" : "NO"}`
+    );
+
+    console.log("\nWarming distinct product-list cache keys:");
+    for (const url of listingUrls) {
+        const result = await fetchListing(url);
+        console.log(`  HTTP ${result.status}: ${url}`);
+    }
+
+    const warmResults = await Promise.all(
+        listingUrls.flatMap((url) =>
+            Array.from(
+                { length: warmRequestsPerUrl },
+                () => fetchListing(url)
+            )
+        )
+    );
+    const warmStats = await getCacheStats();
+    console.log("\nRepeated requests across warmed listing variants:");
+    console.log(`  Distinct listing URLs: ${listingUrls.length}`);
+    console.log(
+        `  Requests: ${warmResults.length} (${warmRequestsPerUrl} per URL)`
+    );
+    console.log(
+        `  All responses successful: ${warmResults.length === listingUrls.length * warmRequestsPerUrl}`
+    );
+    console.log(
+        `  Cumulative hits/misses: ${warmStats.hits}/${warmStats.misses}`
+    );
+
+    const beforeLoad = await getCacheStats();
+    console.log(
+        `\nRunning warm-cache load: ${connections} connections for ${duration}s on ${coldUrl}`
+    );
+    const load = await runLoad();
+    const afterLoad = await getCacheStats();
+    const loadHits = afterLoad.hits - beforeLoad.hits;
+    const loadMisses = afterLoad.misses - beforeLoad.misses;
+    const countedCacheLookups = loadHits + loadMisses;
+    const totalHits = afterLoad.hits;
+    const totalMisses = afterLoad.misses;
+    const totalLookups = totalHits + totalMisses;
+
+    console.log("\nWarm-cache load results:");
+    console.log(`  Total requests: ${load.requests.total}`);
+    console.log(`  Requests/sec: ${load.requests.average}`);
+    console.log(`  Average latency: ${load.latency.average} ms`);
+    console.log(`  P50 latency: ${load.latency.p50} ms`);
+    console.log(`  P95 latency: ${load.latency.p95} ms`);
+    console.log(`  P99 latency: ${load.latency.p99} ms`);
+    console.log(`  Max latency: ${load.latency.max} ms`);
+    console.log(`  Errors: ${load.errors}`);
+    console.log(`  Non-2xx responses: ${load.non2xx}`);
+    console.log(`  Cache hits during load: ${loadHits}`);
+    console.log(`  Cache misses during load: ${loadMisses}`);
+    console.log(
+        `  Hit rate during load: ${countedCacheLookups === 0 ? 0 : Number(((loadHits / countedCacheLookups) * 100).toFixed(2))}%`
+    );
+
+    console.log("\nAll test cache counters:");
+    console.log(`  Hits: ${totalHits}`);
+    console.log(`  Misses: ${totalMisses}`);
+    console.log(`  Total: ${totalLookups}`);
+    console.log(
+        `  Hit rate: ${totalLookups === 0 ? 0 : Number(((totalHits / totalLookups) * 100).toFixed(2))}%`
+    );
+    console.log(
+        `  Miss rate: ${totalLookups === 0 ? 0 : Number(((totalMisses / totalLookups) * 100).toFixed(2))}%`
+    );
+    console.log(
+        `  Cache-hit verification: ${
+            load.errors === 0 &&
+            load.non2xx === 0 &&
+            loadHits > 0 &&
+            loadMisses === 0
+                ? "PASS"
+                : "FAIL"
+        }`
+    );
 };
 
 main().catch((error) => {

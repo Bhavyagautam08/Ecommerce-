@@ -21,7 +21,7 @@ export const claimOrderIdempotencyKey = async (userId, idempotencyKey, token) =>
     (await redisClient.set(
         orderIdempotencyRedisKey(userId, idempotencyKey),
         `processing:${token}`,
-        { NX: true, EX: ORDER_IDEMPOTENCY_TTL_SECONDS }
+        { nx: true, ex: ORDER_IDEMPOTENCY_TTL_SECONDS }
     )) === "OK";
 
 export const getOrderIdempotencyResult = async (userId, idempotencyKey) =>
@@ -33,21 +33,23 @@ export const completeOrderIdempotencyKey = async (
     token,
     orderId
 ) =>
-    redisClient.eval(COMPARE_AND_SET_SCRIPT, {
-        keys: [orderIdempotencyRedisKey(userId, idempotencyKey)],
-        arguments: [
+    redisClient.eval(
+        COMPARE_AND_SET_SCRIPT,
+        [orderIdempotencyRedisKey(userId, idempotencyKey)],
+        [
             `processing:${token}`,
             `completed:${orderId}`,
-            String(ORDER_IDEMPOTENCY_TTL_SECONDS),
-        ],
-    });
+            String(ORDER_IDEMPOTENCY_TTL_SECONDS)
+        ]
+    );
 
 export const releaseOrderIdempotencyKey = async (
     userId,
     idempotencyKey,
     token
 ) =>
-    redisClient.eval(COMPARE_AND_DELETE_SCRIPT, {
-        keys: [orderIdempotencyRedisKey(userId, idempotencyKey)],
-        arguments: [`processing:${token}`],
-    });
+    redisClient.eval(
+        COMPARE_AND_DELETE_SCRIPT,
+        [orderIdempotencyRedisKey(userId, idempotencyKey)],
+        [`processing:${token}`]
+    );

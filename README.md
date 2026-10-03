@@ -84,7 +84,8 @@ The app will be available at `http://localhost:3000`.
 | `JWT_SECRET` | Secret for signing access tokens |
 | `REFRESH_TOKEN_SECRET` | Secret for signing refresh tokens |
 | `REDIS_ENABLED` | Set to `false` to bypass Redis-backed caching locally; defaults to enabled |
-| `REDIS_URL` | Redis connection URL |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL (`https://...upstash.io`) |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
 | `CLIENT_URL` | Primary frontend origin allowed by CORS |
 | `CLIENT_URLS` | Optional comma-separated additional frontend origins |
 | `SMTP_EMAIL` | Gmail address for sending OTPs |

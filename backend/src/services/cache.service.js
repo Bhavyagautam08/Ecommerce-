@@ -1,5 +1,5 @@
 import { REDIS_ENABLED } from "../config/env.js";
-import redisClient from "../config/redis.js";
+import redisClient, { scanKeys } from "../config/redis.js";
 
 const TTL = 30 * 60;
 
@@ -28,7 +28,7 @@ export const getCache = async (key) => {
     if (isProductListingCache) {
         cacheHits++;
     }
-    return JSON.parse(cachedData);
+    return cachedData;
 };
 
 export const setCache = async (key, value) => {
@@ -38,9 +38,9 @@ export const setCache = async (key, value) => {
 
     await redisClient.set(
         key,
-        JSON.stringify(value),
+        value,
         {
-            EX: TTL
+            ex: TTL
         }
     );
 };
@@ -58,10 +58,10 @@ export const invalidateProductCache = async () => {
         return;
     }
 
-    const keys = await redisClient.keys("products:*");
+    const keys = await scanKeys("products:*");
 
     if (keys.length > 0) {
-        await redisClient.del(keys);
+        await redisClient.del(...keys);
     }
 };
 
