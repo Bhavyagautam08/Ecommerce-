@@ -9,7 +9,6 @@ import loginRouter from "./routes/auth.routes.js"
 import { loginSchema, registerSchema } from "./validation/auth.validation.js";
 import validate from "./middlewares/validate.middleware.js";
 import registerRouter from "./routes/register.routes.js"
-import { connectRedis } from "./config/redis.js";
 import adminRouter from "./routes/admin.routes.js";
 import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
@@ -36,7 +35,6 @@ app.use(
     })
 );
 connectDB();
-connectRedis();
 
 app.use("/api/v1", healthRouter);
 app.use("/api/v1" ,  registerRouter)

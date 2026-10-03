@@ -4,9 +4,27 @@ export const createOrder = async (req, res, next) => {
     try {
         const userId = req.user.id || req.user._id || req.user.userId;
         const { shippingAddress } = req.body;
-        const order = await orderService.createOrder(userId, shippingAddress);
+        const idempotencyKey = req.headers["idempotency-key"];
+
+        if (
+            typeof idempotencyKey !== "string" ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)
+        ) {
+            return res.status(400).json({
+                message: "A valid Idempotency-Key UUID is required"
+            });
+        }
+
+        const order = await orderService.createOrder(
+            userId,
+            shippingAddress,
+            idempotencyKey
+        );
         res.status(201).json(order);
     } catch (error) {
+        if (error.statusCode) {
+            return res.status(error.statusCode).json({ message: error.message });
+        }
         if (error.message.includes("not found") || error.message.includes("empty") || error.message.includes("active") || error.message.includes("stock")) {
             return res.status(400).json({ message: error.message });
         }

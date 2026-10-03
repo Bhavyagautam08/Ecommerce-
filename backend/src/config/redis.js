@@ -1,35 +1,27 @@
-import { REDIS_URL } from "./env.js";
+import { REDIS_ENABLED, REDIS_URL } from "./env.js";
+import { createClient } from "redis";
 
-// Mocking Redis with an in-memory Map to allow the app to run without a local Redis server
-const store = new Map();
+if (REDIS_ENABLED && !REDIS_URL) {
+    throw new Error("REDIS_URL must be configured");
+}
 
-const redisClient = {
-    get: async (key) => store.get(key) || null,
-    set: async (key, value, options) => { 
-        store.set(key, value); 
-        if (options && options.EX) {
-            setTimeout(() => {
-                store.delete(key);
-            }, options.EX * 1000);
-        }
-        return 'OK'; 
-    },
-    del: async (key) => { 
-        if (Array.isArray(key)) {
-            key.forEach(k => store.delete(k));
-        } else {
-            store.delete(key);
-        }
-    },
-    keys: async (pattern) => {
-        const prefix = pattern.replace('*', '');
-        return Array.from(store.keys()).filter(k => k.startsWith(prefix));
-    },
-    on: () => {}
-};
+const redisClient = REDIS_URL
+    ? createClient({ url: REDIS_URL })
+    : createClient();
+redisClient.on("error", (error) => {
+    console.error("Redis client error:", error.message);
+});
 
 export const connectRedis = async () => {
-    console.log("Mock Redis (in-memory) connected successfully.");
+    if (!REDIS_ENABLED) {
+        console.log("Redis disabled by REDIS_ENABLED=false.");
+        return;
+    }
+
+    if (!redisClient.isOpen) {
+        await redisClient.connect();
+    }
+    console.log("Redis connected successfully.");
 };
 
 export default redisClient;

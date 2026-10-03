@@ -45,12 +45,16 @@ npm run dev
 
 The API will be available at `http://localhost:5000`.
 
-To populate the catalog with at least 100 products and multi-image galleries, set
-`MONGO_URI` in `backend/.env` and run this once from the `backend/` directory:
+To populate the catalog with at least 1,000 products and multi-image galleries, set
+`MONGO_URI` in `backend/.env` and run this from the `backend/` directory:
 
 ```bash
 npm run seed
 ```
+
+The default target is 1,000 products. For a larger local/benchmark catalog, set
+`SEED_COUNT=100000` in `backend/.env` and run `npm run seed`. Check MongoDB
+storage limits before seeding large datasets, especially on free-tier clusters.
 
 The seed command is repeatable and preserves existing products; it adds only
 missing catalog entries and refreshes galleries for the original sample items.
@@ -79,6 +83,8 @@ The app will be available at `http://localhost:3000`.
 | `MONGO_URI` | MongoDB Atlas connection string |
 | `JWT_SECRET` | Secret for signing access tokens |
 | `REFRESH_TOKEN_SECRET` | Secret for signing refresh tokens |
+| `REDIS_ENABLED` | Set to `false` to bypass Redis-backed caching locally; defaults to enabled |
+| `REDIS_URL` | Redis connection URL |
 | `CLIENT_URL` | Primary frontend origin allowed by CORS |
 | `CLIENT_URLS` | Optional comma-separated additional frontend origins |
 | `SMTP_EMAIL` | Gmail address for sending OTPs |
@@ -109,7 +115,12 @@ The app will be available at `http://localhost:3000`.
 
 1. Import the repo, set **Root Directory** to `frontend/`.
 2. Set `NEXT_PUBLIC_API_URL` to your Render backend URL (e.g. `https://your-api.onrender.com/api/v1`).
-3. Deploy.
+3. Add the variable to the Vercel project's Production (and Preview, if used)
+   environment, then deploy or redeploy. Do not commit deployment credentials
+   or local `.env` files.
+4. If the GitHub repository is connected to Vercel, pushes to the configured
+   production branch trigger a frontend deployment. Backend changes still need
+   to be deployed by the backend host (for example, Render).
 
 ---
 
@@ -121,6 +132,6 @@ The app will be available at `http://localhost:3000`.
 | Backend | Node.js, Express.js 5 |
 | Database | MongoDB Atlas + Mongoose |
 | Auth | JWT (access + refresh tokens) |
-| Cache / OTP | In-memory Map (Redis-compatible interface) |
+| Cache / OTP | Redis |
 | Email | Nodemailer + Gmail SMTP |
 | Validation | Zod |

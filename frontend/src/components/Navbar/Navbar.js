@@ -47,7 +47,7 @@ export default function Navbar() {
           {/* Center nav links */}
           <ul className={styles.links}>
             {NAV_LINKS.map((item) => (
-              <li key={item}>
+              <li key={item.href}>
                 <Link
                   href={item.href}
                   className={`${styles.link} ${pathname.includes(item.label.toLowerCase()) ? styles.active : ""}`}

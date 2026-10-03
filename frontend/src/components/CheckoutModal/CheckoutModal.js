@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { orderService } from "@/services/order.service";
 import { useCart } from "@/context/CartContext";
@@ -8,6 +8,7 @@ import styles from "./CheckoutModal.module.css";
 export default function CheckoutModal({ onClose, cartTotal }) {
   const router = useRouter();
   const { fetchCart } = useCart();
+  const idempotencyKey = useRef(null);
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
@@ -29,7 +30,11 @@ export default function CheckoutModal({ onClose, cartTotal }) {
     setLoading(true);
     setError("");
     try {
-      const order = await orderService.create(form);
+      if (!idempotencyKey.current) {
+        idempotencyKey.current = crypto.randomUUID();
+      }
+
+      const order = await orderService.create(form, idempotencyKey.current);
       await fetchCart(); // refresh cart count
       onClose();
       router.push(`/orders/${order._id}`);
@@ -44,7 +49,7 @@ export default function CheckoutModal({ onClose, cartTotal }) {
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>📦 Shipping Details</h2>
+          <h2 className={styles.modalTitle}>Shipping Details</h2>
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
